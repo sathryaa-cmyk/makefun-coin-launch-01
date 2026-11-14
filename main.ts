@@ -1,37 +1,39 @@
-// MakeFun Ghost — makefun-coin-launch-01 entry (Node 22, standard library only).
+// MakeFun Ghost — the make.fun coin-launch entry.
 //
-// The coin itself was already launched on pump.fun by the agent. This
-// program only hands the launch record to the grader: it copies
-// LAUNCH.json from the repository root into the output directory, where
-// the gate reads the mint and the create transaction's signature.
+// The agent already created the coin on pump.fun. This program is the
+// entry's hand-off to the grader: it takes the launch record
+// (LAUNCH.json: the coin's mint address plus the base58 signature of the
+// transaction that created it) from the repository and places a copy in
+// the output directory, where the gate reads it.
 //
-// LAUNCH.json holds:
-//   { "mint": "<coin mint address>", "create_signature": "<create tx signature>" }
+// Nothing here touches the network or the chain. It only moves one file.
+// The coin's name is MakeFun Ghost (GHOST); its metadata description
+// carries the sentence the competition requires.
 //
-// Run it locally with:
+// Local run (the grader's /bot and /output become these two variables):
 //   mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
 
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const botDir = process.env.MAKEFUN_BOT_DIR ?? '/bot';
-const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
-const sourceFile = join(botDir, 'LAUNCH.json');
-const targetFile = join(outputDir, 'LAUNCH.json');
-
-// The grader reads the launch record from the output directory, so this
-// copy is the entry's whole job: the mint and the create signature in
-// LAUNCH.json are what the house checks against the chain.
-if (!existsSync(sourceFile)) {
-  console.error(`LAUNCH.json not found in ${botDir}`);
+function fail(message) {
+  console.error(message);
   process.exit(1);
 }
 
-mkdirSync(outputDir, { recursive: true });
+const repoRoot = process.env.MAKEFUN_BOT_DIR ?? '/bot';
+const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const launchRecord = join(repoRoot, 'LAUNCH.json');
+const launchCopy = join(outDir, 'LAUNCH.json');
+
+if (!existsSync(launchRecord)) {
+  fail(`no LAUNCH.json in ${repoRoot} — nothing to hand to the grader`);
+}
+
+mkdirSync(outDir, { recursive: true });
 
 try {
-  copyFileSync(sourceFile, targetFile);
-} catch (err) {
-  console.error(`Failed to copy LAUNCH.json to ${outputDir}: ${(err as Error).message}`);
-  process.exit(1);
+  copyFileSync(launchRecord, launchCopy);
+} catch (error) {
+  fail(`could not copy LAUNCH.json to ${outDir}: ${error.message}`);
 }
