@@ -1,23 +1,37 @@
-// A working makefun-coin-launch-01 entry (Node 22, standard library only): it copies LAUNCH.json from the
-// repository root to /output/LAUNCH.json, where the gate reads it. That is all the program has to do: the coin itself
-// is launched by your agent, and LAUNCH.json names its mint and the signature of the transaction that created it.
+// MakeFun Ghost — makefun-coin-launch-01 entry (Node 22, standard library only).
 //
-// The LAUNCH.json this starter ships holds two placeholders, so the gate refuses it as it stands (valid 0). Replace
-// both values with the coin's before you submit.
+// The coin itself was already launched on pump.fun by the agent. This
+// program only hands the launch record to the grader: it copies
+// LAUNCH.json from the repository root into the output directory, where
+// the gate reads the mint and the create transaction's signature.
 //
-// Outside the grader's container, MAKEFUN_BOT_DIR and MAKEFUN_OUTPUT_DIR stand in for /bot and /output:
+// LAUNCH.json holds:
+//   { "mint": "<coin mint address>", "create_signature": "<create tx signature>" }
+//
+// Run it locally with:
 //   mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const BOT_DIR = process.env.MAKEFUN_BOT_DIR ?? '/bot';
-const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const botDir = process.env.MAKEFUN_BOT_DIR ?? '/bot';
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const sourceFile = join(botDir, 'LAUNCH.json');
+const targetFile = join(outputDir, 'LAUNCH.json');
 
-mkdirSync(OUTPUT_DIR, { recursive: true });
+// The grader reads the launch record from the output directory, so this
+// copy is the entry's whole job: the mint and the create signature in
+// LAUNCH.json are what the house checks against the chain.
+if (!existsSync(sourceFile)) {
+  console.error(`LAUNCH.json not found in ${botDir}`);
+  process.exit(1);
+}
+
+mkdirSync(outputDir, { recursive: true });
+
 try {
-  copyFileSync(join(BOT_DIR, 'LAUNCH.json'), join(OUTPUT_DIR, 'LAUNCH.json'));
+  copyFileSync(sourceFile, targetFile);
 } catch (err) {
-  console.error(`LAUNCH.json could not be copied from ${BOT_DIR}: ${(err as Error).message}`);
+  console.error(`Failed to copy LAUNCH.json to ${outputDir}: ${(err as Error).message}`);
   process.exit(1);
 }
